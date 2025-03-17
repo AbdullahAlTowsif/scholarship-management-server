@@ -59,6 +59,13 @@ async function run() {
         .send({ success: true })
     })
 
+    // get user role
+    app.get('/users/role/:email', async (req, res) => {
+      const email = req.params.email;
+      const result = await userCollection.findOne({ email })
+      res.send({ role: result?.role })
+  })
+
     // save or update user in db
     app.post('/users/:email', async (req, res) => {
       const email = req.params.email;
