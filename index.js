@@ -41,6 +41,7 @@ async function run() {
     // collections
     const dbCollection = client.db('scholarshipDB')
     const userCollection = dbCollection.collection('users');
+    const scholarshipCollection = dbCollection.collection('scholarships');
 
     // generate jwt
     app.post('/jwt', async (req, res) => {
@@ -95,6 +96,18 @@ async function run() {
         .send({ success: true })
     })
 
+    // save a scholarship data in db
+    app.post('/scholarship', async(req, res)=> {
+      const addScholarship = req.body;
+      const result =  await scholarshipCollection.insertOne(addScholarship);
+      res.send(result);
+    })
+
+    app.get('/scholarship', async(req, res)=> {
+      const cursor = scholarshipCollection.find();
+      const result = await cursor.toArray();
+      res.send(result);
+    })
 
     // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
