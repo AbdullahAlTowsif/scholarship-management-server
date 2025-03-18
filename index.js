@@ -65,7 +65,7 @@ async function run() {
       const email = req.params.email;
       const result = await userCollection.findOne({ email })
       res.send({ role: result?.role })
-  })
+    })
 
     // save or update user in db
     app.post('/users/:email', async (req, res) => {
@@ -97,24 +97,39 @@ async function run() {
     })
 
     // save a scholarship data in db
-    app.post('/scholarship', async(req, res)=> {
+    app.post('/scholarship', async (req, res) => {
       const addScholarship = req.body;
-      const result =  await scholarshipCollection.insertOne(addScholarship);
+      const result = await scholarshipCollection.insertOne(addScholarship);
       res.send(result);
     })
 
-    app.get('/scholarship', async(req, res)=> {
+    app.get('/scholarship', async (req, res) => {
       const cursor = scholarshipCollection.find();
       const result = await cursor.toArray();
       res.send(result);
     })
 
     // scholarship details api
-    app.get('/scholarship/:id', async(req, res)=> {
+    app.get('/scholarship/:id', async (req, res) => {
       const id = req.params.id;
-      const query = {_id: new ObjectId(id)}
+      const query = { _id: new ObjectId(id) }
       const result = await scholarshipCollection.findOne(query);
       res.send(result);
+    })
+
+    // update scholarship deatils api
+    app.put('/scholarship/update/:id', async (req, res) => {
+      const id = req.params.id;
+      const scholarshipData = req.body;
+      // Remove _id from the scholarshipData if it exists
+      delete scholarshipData._id;
+      const updatedData = {
+        $set: scholarshipData,
+      }
+      const query = { _id: new ObjectId(id) }
+      const options = { upsert: true }
+      const result = await scholarshipCollection.updateOne(query, updatedData, options);
+      res.send(result)
     })
 
     // Send a ping to confirm a successful connection
