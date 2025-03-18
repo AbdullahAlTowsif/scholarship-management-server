@@ -132,6 +132,18 @@ async function run() {
       res.send(result)
     })
 
+    // delete scholarship api
+    app.delete('/delete/scholarship/:id', async (req, res) => {
+      const { id } = req.params;
+      const result = await scholarshipCollection.deleteOne({ _id: new ObjectId(id) })
+      if (result.deletedCount > 0) {
+        res.status(200).send({ message: "Scholarship deleted successfully" })
+      }
+      else {
+        res.status(400).send({ message: "Scholarship Not Found" })
+      }
+    })
+
     // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
