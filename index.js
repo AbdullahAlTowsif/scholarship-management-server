@@ -2,6 +2,7 @@ const express = require('express');
 const app = express();
 const cors = require('cors');
 require('dotenv').config();
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const port = process.env.PORT || 5000;
 const cookieParser = require('cookie-parser');
 const jwt = require('jsonwebtoken')
@@ -42,6 +43,7 @@ async function run() {
     const dbCollection = client.db('scholarshipDB')
     const userCollection = dbCollection.collection('users');
     const scholarshipCollection = dbCollection.collection('scholarships');
+    const paymentCollection = dbCollection.collection('payments');
 
     // generate jwt
     app.post('/jwt', async (req, res) => {
@@ -185,6 +187,57 @@ async function run() {
         res.status(400).send({ message: "Scholarship Not Found" })
       }
     })
+
+    // payment API
+    app.post("/enroll/payments", async (req, res) => {
+      const { scholarshipId, transactionId, userName, userEmail, postedUserEmail, aplicationFees } = req.body;
+
+      if (!scholarshipId || !transactionId || !userName || !userEmail || !postedUserEmail || !aplicationFees) {
+        return res.status(400).json({ error: "All fields are required" });
+      }
+
+      try {
+        const payment = {
+          scholarshipId,
+          transactionId,
+          userName,
+          userEmail,
+          postedUserEmail,
+          aplicationFees,
+          createdAt: new Date(),
+        };
+
+        // const paymentsCollection = db.collection("payments");
+        await paymentCollection.insertOne(payment);
+
+        res.status(201).json({ message: "Payment recorded successfully!" });
+      } catch (error) {
+        console.error("Error saving payment:", error);
+        res.status(500).json({ error: "Failed to save payment" });
+      }
+    });
+
+    app.post("/api/create-payment-intent", async (req, res) => {
+      const { aplicationFees, scholarshipId } = req.body;
+
+      if (!aplicationFees || !scholarshipId) {
+        return res.status(400).json({ error: "Amount and classId are required" });
+      }
+
+      try {
+        const paymentIntent = await stripe.paymentIntents.create({
+          amount: Math.round(aplicationFees * 100), // Stripe uses cents
+          currency: "usd",
+          payment_method_types: ["card"],
+        });
+
+        res.status(200).json({ clientSecret: paymentIntent.client_secret });
+      } catch (error) {
+        console.error("Error creating payment intent:", error);
+        res.status(500).json({ error: "Failed to create payment intent" });
+      }
+    });
+
 
     // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
