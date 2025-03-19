@@ -192,7 +192,7 @@ async function run() {
     // Apply for a Scholarship
     app.post('/applied-scholarship', async (req, res) => {
       const application = req.body;
-      console.log("Incoming application data:", application); // Debugging log
+      // console.log("Incoming application data:", application); // Debugging log
       if (!application.scholarshipId || !application.userEmail || !application.userName) {
         return res.status(400).json({ error: "Scholarship ID, User Email, and User Name are required" });
       }
@@ -211,6 +211,7 @@ async function run() {
         // Save the application
         const newApplication = {
           ...application,
+          status: 'pending',
           appliedAt: new Date(),
         };
 
@@ -221,6 +222,102 @@ async function run() {
         res.status(500).json({ error: "Failed to apply for scholarship" });
       }
     });
+
+    // Add the following route to your Express server
+    // app.get('/applied-scholarship/:email', async (req, res) => {
+    //   const { email } = req.params;
+    //   console.log(email);
+
+    //   try {
+    //     // Query the database to find scholarships where the user has applied
+    //     const appliedScholarships = await appliedScholarshipCollection.find({ userEmail: email }).toArray();
+
+    //     if (appliedScholarships.length === 0) {
+    //       return res.status(404).json({ message: 'No applied scholarships found for this user' });
+    //     }
+
+    //     // If scholarships are found, return them
+    //     res.status(200).json(appliedScholarships);
+    //   } catch (error) {
+    //     console.error('Error fetching applied scholarships:', error);
+    //     res.status(500).json({ message: 'Internal Server Error' });
+    //   }
+    // });
+
+    app.get('/applied-scholarship/:email', async (req, res) => {
+      const { email } = req.params;
+      console.log(email);
+
+      try {
+        // Perform aggregation to join appliedScholarshipCollection with scholarshipCollection
+        const appliedScholarshipsWithDetails = await appliedScholarshipCollection.aggregate([
+          {
+            $match: { userEmail: email }, // Match the user by email
+          },
+          {
+            $addFields: {
+              scholarshipId: { $toObjectId: '$scholarshipId' }
+            }
+          },
+          {
+            $lookup: {
+              from: 'scholarships', // Join with the scholarships collection
+              localField: 'scholarshipId', // Field in appliedScholarshipCollection
+              foreignField: '_id', // Field in scholarships collection
+              as: 'scholarshipDetails', // Resulting array of matched documents
+            },
+          },
+          {
+            $unwind: {
+              path: '$scholarshipDetails', // Unwind the array to get the scholarship details in each document
+              preserveNullAndEmptyArrays: true, // Keep documents even if no match was found
+            },
+          },
+          {
+            $project: {
+              // Optional: Project the fields you need in the final response
+              _id: 1,
+              universityName: '$scholarshipDetails.universityName',
+              universityAddress: '$scholarshipDetails.universityCity',
+              applicationFeedback: 1, // From appliedScholarshipCollection
+              subjectCategory: '$scholarshipDetails.subjectCategory',
+              degree: '$scholarshipDetails.degree',
+              aplicationFees: '$scholarshipDetails.aplicationFees',
+              serviceCharge: '$scholarshipDetails.serviceCharge',
+              status: 1, // From appliedScholarshipCollection
+            },
+          },
+        ]).toArray();
+
+        if (appliedScholarshipsWithDetails.length === 0) {
+          return res.status(404).json({ message: 'No applied scholarships found for this user' });
+        }
+
+        // If scholarships are found, return them
+        res.status(200).json(appliedScholarshipsWithDetails);
+      } catch (error) {
+        console.error('Error fetching applied scholarships:', error);
+        res.status(500).json({ message: 'Internal Server Error' });
+      }
+    });
+
+
+    // Cancel an application by scholarship ID
+    app.delete('/applied-scholarship/:scholarshipId', async (req, res) => {
+      const { scholarshipId } = req.params;
+
+      try {
+        const result = await appliedScholarshipCollection.deleteOne({ _id: new MongoClient.ObjectID(scholarshipId) });
+        if (result.deletedCount === 0) {
+          return res.status(404).json({ message: 'Application not found' });
+        }
+        res.status(200).json({ message: 'Application canceled successfully' });
+      } catch (error) {
+        console.error('Error canceling application:', error);
+        res.status(500).json({ message: 'Failed to cancel application' });
+      }
+    });
+
 
     // payment API
     app.post("/enroll/payments", async (req, res) => {
