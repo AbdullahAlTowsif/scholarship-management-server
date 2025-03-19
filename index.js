@@ -246,7 +246,7 @@ async function run() {
 
     app.get('/applied-scholarship/:email', async (req, res) => {
       const { email } = req.params;
-      console.log(email);
+      // console.log(email);
 
       try {
         // Perform aggregation to join appliedScholarshipCollection with scholarshipCollection
@@ -307,7 +307,7 @@ async function run() {
       const { scholarshipId } = req.params;
 
       try {
-        const result = await appliedScholarshipCollection.deleteOne({ _id: new MongoClient.ObjectID(scholarshipId) });
+        const result = await appliedScholarshipCollection.deleteOne({ _id: new ObjectId(scholarshipId) });
         if (result.deletedCount === 0) {
           return res.status(404).json({ message: 'Application not found' });
         }
