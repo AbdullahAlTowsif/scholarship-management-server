@@ -44,6 +44,7 @@ async function run() {
     const userCollection = dbCollection.collection('users');
     const scholarshipCollection = dbCollection.collection('scholarships');
     const paymentCollection = dbCollection.collection('payments');
+    const appliedScholarshipCollection = dbCollection.collection('appliedScholarships');
 
     // generate jwt
     app.post('/jwt', async (req, res) => {
@@ -187,6 +188,39 @@ async function run() {
         res.status(400).send({ message: "Scholarship Not Found" })
       }
     })
+
+    // Apply for a Scholarship
+    app.post('/applied-scholarship', async (req, res) => {
+      const application = req.body;
+      console.log("Incoming application data:", application); // Debugging log
+      if (!application.scholarshipId || !application.userEmail || !application.userName) {
+        return res.status(400).json({ error: "Scholarship ID, User Email, and User Name are required" });
+      }
+
+      try {
+        // Check if user has already applied
+        const existingApplication = await appliedScholarshipCollection.findOne({
+          scholarshipId: application.scholarshipId,
+          userEmail: application.userEmail
+        });
+
+        if (existingApplication) {
+          return res.status(400).json({ error: "You have already applied for this scholarship" });
+        }
+
+        // Save the application
+        const newApplication = {
+          ...application,
+          appliedAt: new Date(),
+        };
+
+        const result = await appliedScholarshipCollection.insertOne(newApplication);
+        res.status(201).json({ message: "Application submitted successfully", applicationId: result.insertedId });
+      } catch (error) {
+        console.error("Error saving application:", error);
+        res.status(500).json({ error: "Failed to apply for scholarship" });
+      }
+    });
 
     // payment API
     app.post("/enroll/payments", async (req, res) => {
