@@ -85,6 +85,48 @@ async function run() {
       res.send(result)
     })
 
+    app.get('/users', async (req, res) => {
+      const cursor = userCollection.find();
+      const result = await cursor.toArray();
+      res.send(result);
+    })
+
+    // update user role api
+    app.patch("/update-role/:id", async (req, res) => {
+      const { id } = req.params;
+      const { role } = req.body; // Ensure role exists in request body
+      try {
+        if (!role) {
+          return res.status(400).json({ message: "Role is required" });
+        }
+        const result = await userCollection.updateOne(
+          { _id: new ObjectId(id) },
+          { $set: { role } }
+        );
+        if (result.modifiedCount > 0) {
+          res.status(200).json({ message: "User role updated successfully" });
+        } else {
+          res.status(404).json({ message: "User not found or role unchanged" });
+        }
+      } catch (error) {
+        console.error("Error updating user role:", error);
+        res.status(500).json({ message: "Internal Server Error" });
+      }
+    });
+
+
+    // delete users
+    app.delete('/users/delete/:id', async (req, res) => {
+      const { id } = req.params;
+      const result = await userCollection.deleteOne({ _id: new ObjectId(id) });
+      if (result.deletedCount > 0) {
+        res.status(200).send({ "message": "User deleted successfully" })
+      }
+      else {
+        res.status(400).send({ "message": "User not found" })
+      }
+    })
+
     // logOut || clear cookie from browser
     app.get('/logOut', async (req, res) => {
       res.
