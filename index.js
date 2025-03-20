@@ -223,27 +223,6 @@ async function run() {
       }
     });
 
-    // Add the following route to your Express server
-    // app.get('/applied-scholarship/:email', async (req, res) => {
-    //   const { email } = req.params;
-    //   console.log(email);
-
-    //   try {
-    //     // Query the database to find scholarships where the user has applied
-    //     const appliedScholarships = await appliedScholarshipCollection.find({ userEmail: email }).toArray();
-
-    //     if (appliedScholarships.length === 0) {
-    //       return res.status(404).json({ message: 'No applied scholarships found for this user' });
-    //     }
-
-    //     // If scholarships are found, return them
-    //     res.status(200).json(appliedScholarships);
-    //   } catch (error) {
-    //     console.error('Error fetching applied scholarships:', error);
-    //     res.status(500).json({ message: 'Internal Server Error' });
-    //   }
-    // });
-
     app.get('/applied-scholarship/:email', async (req, res) => {
       const { email } = req.params;
       // console.log(email);
